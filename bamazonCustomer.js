@@ -26,13 +26,12 @@ connection.connect(function (err) {
 
 //function that shows table data in the terminal 
 
-function start (){
+function start(){
   showData();
 }
 
-function showData() {
-
-  connection.query("SELECT * FROM products", function (err, res) {
+function showData(){
+  connection.query("SELECT * FROM products", function (err, res){
     if (err) throw err;
 
     console.log("========================================================================")
@@ -45,86 +44,79 @@ function showData() {
 }
 
 //ask user what Id they would like to purchase (function)
+var itemID;
+var quantity; 
+var price; 
 
-function userPurchase() {
+function userPurchase(){
   inquirer
     .prompt({
       name: "action",
       type: "input",
       message: "What is the ID of the product they would like to buy?",
-      validate: function(value) {
-        if (isNaN(value) === false) {
+      validate: function(value){
+        if (isNaN(value) === false){
           return true;
         }
         return false;
       }
     })
-    .then(function (answer) {
-      var query = "SELECT item_id, product_name, stock_quantity FROM products WHERE ?";
+    .then(function (answer){
+      itemID = answer.action;
+      var query = "SELECT item_id, product_name, stock_quantity, price FROM products WHERE ?";
       // console.log(answer.action)
-      connection.query(query, {
-        item_id: answer.action
-      }, function (err, res) {
-        for (var i = 0; i < res.length; i++) {
+      connection.query(query, {item_id: answer.action}, function (err, res){
+        for (var i = 0; i < res.length; i++){
+          quantity = res[i].stock_quantity;
+          price = res[i].price;
           console.log("========================================================================")
           console.log("You chose item #" + res[i].item_id + " (" + res[i].product_name + ")");
-          console.log("We have " + res[i].stock_quantity + " in stock.");
+          console.log("We have " + quantity + " in stock.");
           console.log("========================================================================")
         }
         purchaseQuantity();
-        
       });
     })
 }
 
-function purchaseQuantity() {
+function purchaseQuantity(){
   inquirer
     .prompt({
       name: "quantityAnswer",
       type: "input",
       message: "How many units of the product would you like to buy?",
-      validate: function(value) {
-        if (isNaN(value) === false) {
+      validate: function(value){
+        if (isNaN(value) === false){
           return true;
         }
         return false;
       }
     })
-    .then(function (answer) {
-      var query = "UPDATE products SET stock_quantity = ? WHERE item_id = ?";
-      connection.query(query, answer.quantityAnswer,
-         function (err, res) {
+    .then(function (answer){
+      var newQuantity = quantity - answer.quantityAnswer;
+      var totalPrice =  price * answer.quantityAnswer;
+      if (parseInt(quantity) < answer.quantityAnswer ){
+        console.log("insufficient quality. please choose a lower quantity than " + quantity);
+        purchaseQuantity();
+      }
 
-        console.log(res);
-
-
-        buyOrQuit();
+      else{ 
+        var query = "UPDATE products SET stock_quantity = ? WHERE item_id =" + itemID;
+        connection.query(query, newQuantity, function (err, res){
+          console.log("you're total cost for your order is $" + totalPrice);
+          buyOrQuit();
+        })}
       });
-    })
-}
+    }
 
-// var price = res[0].price * answer.quantityAnswer;
-// var newQuantity = res[0].stock_quantity - answer.quantityAnswer;
-
-
-//mysql update querys 
-
-// code in validation to check if the amount entered is equal to or less than stock quantity
-
- // if (parseInt(res[0].stock_quantity) < parseInt(answer.quantityAnswer)) {
-        // console.log("I'm sorry, but you chose to purchase " + answer.quantityAnswer + " of those.")
-        // console.log("We only have " + res[0].stock_quantity + " in stock.")
-        // console.log("Please choose a quantity equal to or less than " + res[0].stock_quantity);
-
-
-        function buyOrQuit() {
+    function buyOrQuit(){
           inquirer.prompt({
               name: "buyOrQuit",
               type: "list",
               message: "Would you like to Continue Shopping, or EXIT?",
               choices: ["Purchase More!", "EXIT"]
           }).then(function (answer) {
-              if (answer.buyOrQuit === "EXIT") {
+              if (answer.buyOrQuit === "EXIT"){
                   connection.end();
               }
               else {
