@@ -26,6 +26,8 @@ connection.connect(function (err) {
 
 //function that shows table data in the terminal 
 
+
+
 function start() {
     menuOptions();
 }
@@ -57,17 +59,14 @@ function menuOptions() {
     });
 }
 
-
-function viewProducts() {
+function viewProducts(){
     showData();
 }
 
 function viewInventory() {
-    var query = "SELECT * FROM products WHERE stock_quantity <= ?";
-    connection.query(query, [5], function (err, res) {
-        for (var i = 0; i < res.length; i++) {
-            lowInventory <= res[i].stock_quantity;
-        }
+    var query = "SELECT * FROM products WHERE stock_quantity <= 5";
+    connection.query(query, function (err, res) {
+        console.table(res);
     })
     moveOnExit();
 }
@@ -95,32 +94,32 @@ function addInventoryID() {
             connection.query(query, {
                 item_id: answer.action
             }, function (err, res) {
+                
                 for (var i = 0; i < res.length; i++) {
                     quantity = res[i].stock_quantity;
                     console.log("========================================================================")
                     console.log("You chose item to add inventory to item #" + res[i].item_id + " (" + res[i].product_name + ")");
                     console.log("========================================================================")
                 }
-
                 AddInventoryAmount();
             });
         })
 };
 
-function AddInventoryAmount() {
+function AddInventoryAmount(){
     inquirer
         .prompt({
             name: "quantityAnswer",
             type: "input",
             message: "How many units of the product would you like to add to the inventory?",
-            validate: function (value) {
+            validate: function (value){
                 if (isNaN(value) === false) {
                     return true;
                 }
                 return false;
             }
         })
-        .then(function (answer) {
+        .then(function (answer){
             var newQuantity = parseInt(quantity) + parseInt(answer.quantityAnswer);
             var query = "UPDATE products SET stock_quantity = ? WHERE item_id =" + itemID;
             connection.query(query, newQuantity, function (err, res) {
@@ -133,37 +132,75 @@ function AddInventoryAmount() {
                 moveOnExit();
             })
         });
-
 }
 
-function newProduct() {
+function newProduct(){
     inquirer
-        .prompt({
-            name: "productName",
-            type: "input",
-            message: "What is the name of the the new product you would like to add to the store?"
-        }, {
-            name: "productDept",
-            type: "input",
-            message: "What is the department of the the new product that the item will categorize under?"
-        }, {
-            name: "productPrice",
-            type: "input",
-            message: "What is the price of the the new product you would like to add to the store?"
-        }, {
-            name: "productStock",
-            type: "input",
-            message: "What is the total inventory of the the new product you would like to add to the store?"
+        .prompt([
+            {   
+                name: "productName",
+                type: "input",
+                message: "What is the name of the the new product you would like to add to the store?",
+                validate: function(value) {
+                    if ( value === "") {
+                        console.log("Please Enter a Valid Product Name.")
+                      return false;
+                    }
+                    return true;
+                  }
+            }, 
+            {
+                name: "productDept",
+                type: "input",
+                message: "What is the department of the the new product that the item will categorize under?",
+                validate: function(value) {
+                    if ( value === "") {
+                        console.log("Please Enter a Valid Department Name.")
+                      return false;
+                    }
+                    return true;
+                  }
+            }, 
+            {
+                name: "productPrice",
+                type: "input",
+                message: "What is the price of the the new product you would like to add to the store?",
+                validate: function(value) {
+                    if ( value === "") {
+                        console.log("Please Enter a Valid Product Price.")
+                      return false;
+                    }
+                    return true;
+                  }
+            }, 
+            {
+                name: "productStock",
+                type: "input",
+                message: "What is the total inventory of the the new product you would like to add to the store?",
+                validate: function(value) {
+                    if ( value === "") {
+                        console.log("Please Enter a Valid Inventory Quantity.")
+                      return false;
+                    }
+                    return true;
+                  }
+            }
+        ])
+        .then(function (answer){
+            var query = "INSERT INTO products (product_name, department_name, price, stock_quantity) VALUES (?, ?, ?, ?)";
+            connection.query(query, [answer.productName, answer.productDept, answer.productPrice, answer.productStock], function (err, res) {
+                console.log("========================================================================")
+                console.log("New Product has Successfully Been Added!");
+                console.log("========================================================================")
+                console.log("To view the updated inventory, go back to Main Menu, and select 'View Products for Sale'.")
+                console.log("========================================================================")
+            moveOnExit();
+            }) 
         })
-        .then(function (answer) {
-            var query = "INSERT INTO products (product_name, price, department_name, stock_quantity VALUES (?, ?, ?, ?)";
-            connection.query(query, [answer.product_name, answer.productDept, answer.productPrice, answer.productStock], function (err, res) {
-                console.log("New Inventory has been added! To see new inventory item, go back to Main Menu, and select 'View Products for Sale'. ")
-            })
-        })
+       
 }
 
-function showData() {
+function showData(){
     connection.query("SELECT * FROM products", function (err, res) {
         if (err) throw err;
         console.log("========================================================================")
@@ -175,7 +212,7 @@ function showData() {
     });
 }
 
-function moveOnExit() {
+function moveOnExit(){
     inquirer.prompt({
         name: "moveOnExit",
         type: "list",
